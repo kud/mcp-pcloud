@@ -1,3 +1,5 @@
+> ⚠️ **Draft — not working yet.** Authentication flow is under active development.
+
 # pCloud MCP Server
 
 <div align="center">
