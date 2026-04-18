@@ -183,7 +183,60 @@ Add to `.vscode/mcp.json`:
 | `list_rewind_events`  | List version history events for a file path                                |
 | `restore_from_rewind` | Restore a file from rewind history to a new path (requires `confirm=true`) |
 
-**Total: 4 Tools** covering pCloud trash and rewind recovery!
+### 👤 User (1 tool)
+
+| Tool            | Description                              |
+| --------------- | ---------------------------------------- |
+| `get_user_info` | Get account info: email, quota, and plan |
+
+### 📁 Files (10 tools)
+
+| Tool            | Description                                           |
+| --------------- | ----------------------------------------------------- |
+| `list_folder`   | List the contents of a folder                         |
+| `get_file_stat` | Get metadata for a file or folder                     |
+| `create_folder` | Create a folder (no-op if already exists)             |
+| `copy_file`     | Copy a file to a new path                             |
+| `move_file`     | Move a file to a new path                             |
+| `rename_file`   | Rename a file                                         |
+| `delete_file`   | Permanently delete a file (requires `confirm=true`)   |
+| `delete_folder` | Recursively delete a folder (requires `confirm=true`) |
+| `get_file_link` | Get a download URL for a file                         |
+| `get_checksum`  | Get SHA256, SHA1, and MD5 checksums for a file        |
+
+### 🤝 Sharing (5 tools)
+
+| Tool            | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `list_shares`   | List all active folder shares                    |
+| `share_folder`  | Share a folder with another pCloud user          |
+| `accept_share`  | Accept an incoming share request                 |
+| `decline_share` | Decline an incoming share request                |
+| `remove_share`  | Remove an active share (requires `confirm=true`) |
+
+### 🔗 Public Links (4 tools)
+
+| Tool                    | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `create_file_publink`   | Create a public download link for a file       |
+| `create_folder_publink` | Create a public link for a folder              |
+| `list_publinks`         | List all active public links                   |
+| `delete_publink`        | Delete a public link (requires `confirm=true`) |
+
+### 🗜️ Zip (1 tool)
+
+| Tool           | Description                                                  |
+| -------------- | ------------------------------------------------------------ |
+| `get_zip_link` | Get a download URL for a ZIP archive of files and/or folders |
+
+### 🔄 Revisions (2 tools)
+
+| Tool              | Description                                                    |
+| ----------------- | -------------------------------------------------------------- |
+| `list_revisions`  | List all revisions for a file                                  |
+| `revert_revision` | Revert a file to a previous revision (requires `confirm=true`) |
+
+**Total: 27 Tools** covering the full pCloud API surface!
 
 ---
 
