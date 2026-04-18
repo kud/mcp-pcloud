@@ -42,7 +42,7 @@
   "bugs": {
     "url": "https://github.com/kud/mcp-pcloud/issues"
   },
-  "homepage": "https://github.com/kud/mcp-pcloud#readme",
+  "homepage": "https://kud.github.io/mcp-pcloud",
   "engines": {
     "node": ">=20.0.0"
   },
