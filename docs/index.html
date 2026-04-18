@@ -6,7 +6,7 @@
     <title>mcp-pcloud — pCloud MCP Server</title>
     <meta
       name="description"
-      content="MCP server for pCloud — manage trash, rewind, and file recovery directly from your AI assistant."
+      content="MCP server for pCloud — 27 tools covering files, trash, sharing, public links, revisions, and more. Full pCloud API coverage for your AI assistant."
     />
     <link rel="stylesheet" href="./style.css" />
     <link rel="icon" type="image/png" href="./assets/favicon.png" />
@@ -14,7 +14,7 @@
     <meta property="og:title" content="mcp-pcloud — pCloud MCP Server" />
     <meta
       property="og:description"
-      content="MCP server for pCloud — manage trash, rewind, and file recovery directly from your AI assistant."
+      content="MCP server for pCloud — 27 tools covering files, trash, sharing, public links, revisions, and more."
     />
     <meta
       property="og:image"
@@ -65,8 +65,8 @@
           </div>
           <h1>mcp-pcloud</h1>
           <p>
-            Manage pCloud trash and file rewind history directly from your AI
-            assistant.
+            Full pCloud API coverage — manage files, trash, sharing, public
+            links, and version history directly from your AI assistant.
           </p>
           <div class="hero-ctas">
             <a
@@ -119,51 +119,49 @@
           <span class="section-eyebrow reveal">Why mcp-pcloud</span>
           <h2 class="reveal">Features</h2>
           <p class="section-sub reveal">
-            Everything you need to recover, restore, and manage your pCloud
-            files through natural conversation.
+            27 tools across 8 categories — the most complete pCloud integration
+            for AI assistants available today.
           </p>
           <div class="features-grid">
             <div class="feature-card">
-              <div class="feature-icon">🔐</div>
-              <div class="feature-title">Secure Token Auth</div>
+              <div class="feature-icon">📁</div>
+              <div class="feature-title">Full File Management</div>
               <div class="feature-desc">
-                Reads your pCloud bearer token from
-                <code>~/.config/pcloud/tokens.json</code> or the
-                <code>MCP_PCLOUD_TOKEN</code> env var — no hardcoded
-                credentials.
+                List folders, stat files, create, copy, move, rename, and delete
+                — everything you'd do in the pCloud web app, via conversation.
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon">🗑️</div>
-              <div class="feature-title">Trash Management</div>
+              <div class="feature-title">Trash &amp; Recovery</div>
               <div class="feature-desc">
-                List every file in your pCloud trash and restore any of them by
-                file ID, with a safety confirmation gate.
+                List every deleted file and restore any of them by ID. Safety
+                <code>confirm=true</code> gates prevent accidental writes.
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon">⏪</div>
-              <div class="feature-title">File Rewind</div>
+              <div class="feature-title">Rewind &amp; Revisions</div>
               <div class="feature-desc">
-                Browse the full version history of any file and recover older
-                versions to a destination path of your choice.
+                Browse rewind history and file revisions, then restore any
+                previous version to a destination path of your choice.
               </div>
             </div>
             <div class="feature-card">
-              <div class="feature-icon">🌍</div>
-              <div class="feature-title">EU &amp; US Routing</div>
+              <div class="feature-icon">🤝</div>
+              <div class="feature-title">Sharing &amp; Public Links</div>
               <div class="feature-desc">
-                Respects pCloud's dynamic API hostname — use
-                <code>api.pcloud.com</code> for US accounts or
-                <code>eapi.pcloud.com</code> for EU accounts.
+                Share folders with other pCloud users, manage permissions, and
+                create or revoke public download links with optional expiry.
               </div>
             </div>
             <div class="feature-card">
-              <div class="feature-icon">⚡</div>
-              <div class="feature-title">TypeScript &amp; MCP SDK</div>
+              <div class="feature-icon">🔐</div>
+              <div class="feature-title">Secure Token Auth</div>
               <div class="feature-desc">
-                Built on TypeScript 5 and MCP SDK 1.27 with native
-                <code>fetch</code> — no heavy dependencies, fast cold start.
+                Reads your token from
+                <code>~/.config/pcloud/tokens.json</code> or
+                <code>MCP_PCLOUD_TOKEN</code> — no credentials in source code.
               </div>
             </div>
             <div class="feature-card">
@@ -217,39 +215,254 @@
           <span class="section-eyebrow reveal">Available tools</span>
           <h2 class="reveal">Tool Reference</h2>
           <p class="section-sub reveal">
-            Four tools covering pCloud trash management and file rewind
-            recovery.
+            27 tools across 8 categories covering the full pCloud API surface.
           </p>
           <div class="cli-list reveal">
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >Trash</span
+              ><span class="cli-desc"></span>
+            </div>
             <div class="cli-row">
-              <span class="cli-cmd">list_trash</span>
-              <span class="cli-desc"
-                >List all files currently in the pCloud trash, including file
-                IDs, names, sizes, and deletion dates.</span
+              <span class="cli-cmd">list_trash</span
+              ><span class="cli-desc"
+                >List all files in the pCloud trash with IDs, names, sizes, and
+                deletion dates.</span
               >
             </div>
             <div class="cli-row">
-              <span class="cli-cmd">restore_from_trash</span>
-              <span class="cli-desc"
-                >Restore a file from trash by its file ID. Requires
-                <code>confirm: true</code> as a safety gate before the operation
-                executes.</span
+              <span class="cli-cmd">restore_from_trash</span
+              ><span class="cli-desc"
+                >Restore a file from trash by file ID. Requires
+                <code>confirm: true</code>.</span
+              >
+            </div>
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >Rewind</span
+              ><span class="cli-desc"></span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">list_rewind_events</span
+              ><span class="cli-desc"
+                >List version history events for a file path.</span
               >
             </div>
             <div class="cli-row">
-              <span class="cli-cmd">list_rewind_events</span>
-              <span class="cli-desc"
-                >List all version history events for a given file path,
-                returning a timeline of previous versions with their IDs and
-                timestamps.</span
+              <span class="cli-cmd">restore_from_rewind</span
+              ><span class="cli-desc"
+                >Restore a file from rewind history to a new path. Requires
+                <code>confirm: true</code>.</span
+              >
+            </div>
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >User</span
+              ><span class="cli-desc"></span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">get_user_info</span
+              ><span class="cli-desc"
+                >Get account info: email, quota usage, and plan.</span
+              >
+            </div>
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >Files</span
+              ><span class="cli-desc"></span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">list_folder</span
+              ><span class="cli-desc"
+                >List the contents of a folder by path or folder ID.</span
               >
             </div>
             <div class="cli-row">
-              <span class="cli-cmd">restore_from_rewind</span>
-              <span class="cli-desc"
-                >Restore a file from rewind history to a new destination path.
-                Requires a rewind file ID and <code>confirm: true</code> before
-                executing.</span
+              <span class="cli-cmd">get_file_stat</span
+              ><span class="cli-desc">Get metadata for a file or folder.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">create_folder</span
+              ><span class="cli-desc"
+                >Create a folder (no-op if it already exists).</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">copy_file</span
+              ><span class="cli-desc">Copy a file to a new path.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">move_file</span
+              ><span class="cli-desc">Move a file to a new path.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">rename_file</span
+              ><span class="cli-desc">Rename a file.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">delete_file</span
+              ><span class="cli-desc"
+                >Permanently delete a file. Requires
+                <code>confirm: true</code>.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">delete_folder</span
+              ><span class="cli-desc"
+                >Recursively delete a folder and all its contents. Requires
+                <code>confirm: true</code>.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">get_file_link</span
+              ><span class="cli-desc">Get a download URL for a file.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">get_checksum</span
+              ><span class="cli-desc"
+                >Get SHA256, SHA1, and MD5 checksums for a file.</span
+              >
+            </div>
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >Sharing</span
+              ><span class="cli-desc"></span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">list_shares</span
+              ><span class="cli-desc">List all active folder shares.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">share_folder</span
+              ><span class="cli-desc"
+                >Share a folder with another pCloud user with permission
+                control.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">accept_share</span
+              ><span class="cli-desc">Accept an incoming share request.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">decline_share</span
+              ><span class="cli-desc">Decline an incoming share request.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">remove_share</span
+              ><span class="cli-desc"
+                >Remove an active share. Requires
+                <code>confirm: true</code>.</span
+              >
+            </div>
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >Public Links</span
+              ><span class="cli-desc"></span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">create_file_publink</span
+              ><span class="cli-desc"
+                >Create a public download link for a file with optional expiry
+                and download limit.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">create_folder_publink</span
+              ><span class="cli-desc">Create a public link for a folder.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">list_publinks</span
+              ><span class="cli-desc">List all active public links.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">delete_publink</span
+              ><span class="cli-desc"
+                >Delete a public link by code. Requires
+                <code>confirm: true</code>.</span
+              >
+            </div>
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >Zip</span
+              ><span class="cli-desc"></span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">get_zip_link</span
+              ><span class="cli-desc"
+                >Get a download URL for a ZIP archive of selected files and
+                folders.</span
+              >
+            </div>
+            <div class="cli-row" style="background: var(--surface-2)">
+              <span
+                class="cli-cmd"
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.75rem;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                "
+                >Revisions</span
+              ><span class="cli-desc"></span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">list_revisions</span
+              ><span class="cli-desc">List all revisions for a file.</span>
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">revert_revision</span
+              ><span class="cli-desc"
+                >Revert a file to a previous revision. Requires
+                <code>confirm: true</code>.</span
               >
             </div>
           </div>
