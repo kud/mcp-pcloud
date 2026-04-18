@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-import { readFileSync } from "fs"
+import { readFileSync, mkdirSync, writeFileSync } from "fs"
+import { createServer } from "http"
 import { homedir } from "os"
 import { join } from "path"
+import { exec } from "child_process"
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
@@ -11,27 +13,129 @@ interface StoredTokens {
   hostname?: string
 }
 
+const TOKENS_PATH = join(homedir(), ".config", "pcloud", "tokens.json")
+
 const loadStoredTokens = (): StoredTokens | null => {
   try {
-    return JSON.parse(
-      readFileSync(join(homedir(), ".config", "pcloud", "tokens.json"), "utf8"),
-    ) as StoredTokens
+    return JSON.parse(readFileSync(TOKENS_PATH, "utf8")) as StoredTokens
   } catch {
     return null
   }
 }
 
-const stored = loadStoredTokens()
-const ACCESS_TOKEN = process.env["MCP_PCLOUD_TOKEN"] ?? stored?.access_token
+const saveTokens = (tokens: StoredTokens) => {
+  mkdirSync(join(homedir(), ".config", "pcloud"), { recursive: true })
+  writeFileSync(TOKENS_PATH, JSON.stringify(tokens, null, 2))
+}
 
-if (!ACCESS_TOKEN) {
+const openBrowser = (url: string) => {
+  const cmd =
+    process.platform === "darwin"
+      ? "open"
+      : process.platform === "win32"
+        ? "start"
+        : "xdg-open"
+  exec(`${cmd} "${url}"`)
+}
+
+const runOAuthFlow = (
+  clientId: string,
+  clientSecret: string,
+): Promise<StoredTokens> =>
+  new Promise((resolve, reject) => {
+    const httpServer = createServer(async (req, res) => {
+      const url = new URL(req.url!, "http://localhost")
+      const code = url.searchParams.get("code")
+
+      if (!code) {
+        res.writeHead(400)
+        res.end("Missing code parameter")
+        return
+      }
+
+      res.writeHead(200, { "Content-Type": "text/html" })
+      res.end(
+        "<html><body><h2>✅ Authenticated with pCloud! You can close this tab.</h2></body></html>",
+      )
+      httpServer.close()
+
+      try {
+        const tokenUrl = new URL("https://api.pcloud.com/oauth2_token")
+        tokenUrl.searchParams.set("client_id", clientId)
+        tokenUrl.searchParams.set("client_secret", clientSecret)
+        tokenUrl.searchParams.set("code", code)
+
+        const response = await fetch(tokenUrl.toString())
+        const data = (await response.json()) as {
+          access_token?: string
+          hostname?: string
+          error?: string
+        }
+
+        if (!data.access_token) {
+          reject(new Error(data.error ?? "Token exchange failed"))
+          return
+        }
+
+        resolve({ access_token: data.access_token, hostname: data.hostname })
+      } catch (e) {
+        reject(e)
+      }
+    })
+
+    httpServer.listen(0, "localhost", () => {
+      const port = (httpServer.address() as { port: number }).port
+      const authUrl = new URL("https://my.pcloud.com/oauth2/authorize")
+      authUrl.searchParams.set("client_id", clientId)
+      authUrl.searchParams.set(
+        "redirect_uri",
+        `http://localhost:${port}/callback`,
+      )
+      authUrl.searchParams.set("response_type", "code")
+
+      console.error("Opening browser for pCloud authentication…")
+      console.error(
+        `If the browser does not open, visit:\n${authUrl.toString()}`,
+      )
+      openBrowser(authUrl.toString())
+    })
+  })
+
+const resolveAuth = async (): Promise<{ token: string; apiBase: string }> => {
+  if (process.env["MCP_PCLOUD_TOKEN"]) {
+    return {
+      token: process.env["MCP_PCLOUD_TOKEN"],
+      apiBase: "https://api.pcloud.com",
+    }
+  }
+
+  const stored = loadStoredTokens()
+  if (stored?.access_token) {
+    return {
+      token: stored.access_token,
+      apiBase: `https://${stored.hostname ?? "api.pcloud.com"}`,
+    }
+  }
+
+  const clientId = process.env["MCP_PCLOUD_CLIENT_ID"]
+  const clientSecret = process.env["MCP_PCLOUD_CLIENT_SECRET"]
+  if (clientId && clientSecret) {
+    const tokens = await runOAuthFlow(clientId, clientSecret)
+    saveTokens(tokens)
+    return {
+      token: tokens.access_token,
+      apiBase: `https://${tokens.hostname ?? "api.pcloud.com"}`,
+    }
+  }
+
   console.error(
-    "No pCloud token found. Set MCP_PCLOUD_TOKEN or create ~/.config/pcloud/tokens.json.",
+    "No pCloud token found. Set MCP_PCLOUD_TOKEN, or MCP_PCLOUD_CLIENT_ID + MCP_PCLOUD_CLIENT_SECRET, or create ~/.config/pcloud/tokens.json.",
   )
   process.exit(1)
 }
 
-const API_BASE = `https://${stored?.hostname ?? "api.pcloud.com"}`
+let ACCESS_TOKEN: string
+let API_BASE: string
 
 export const apiFetch = async <T>(
   path: string,
@@ -879,6 +983,10 @@ server.registerTool(
 )
 
 const main = async () => {
+  const auth = await resolveAuth()
+  ACCESS_TOKEN = auth.token
+  API_BASE = auth.apiBase
+
   const transport = new StdioServerTransport()
   await server.connect(transport)
   console.error("mcp-pcloud running")
