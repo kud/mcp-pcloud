@@ -14,7 +14,7 @@ interface StoredTokens {
 const loadStoredTokens = (): StoredTokens | null => {
   try {
     return JSON.parse(
-      readFileSync(join(homedir(), ".pcloud-cli", "tokens.json"), "utf8"),
+      readFileSync(join(homedir(), ".config", "pcloud", "tokens.json"), "utf8"),
     ) as StoredTokens
   } catch {
     return null
@@ -26,7 +26,7 @@ const ACCESS_TOKEN = process.env["MCP_PCLOUD_TOKEN"] ?? stored?.access_token
 
 if (!ACCESS_TOKEN) {
   console.error(
-    "No pCloud token found. Set MCP_PCLOUD_TOKEN or run `pcloud login` first.",
+    "No pCloud token found. Set MCP_PCLOUD_TOKEN or create ~/.config/pcloud/tokens.json.",
   )
   process.exit(1)
 }

@@ -27,7 +27,7 @@
 
 ## 🌟 Features
 
-- 🔐 OAuth 2.0 — reuses tokens from `pcloud-cli` automatically
+- 🔐 Bearer token — reads from `~/.config/pcloud/tokens.json` or env var
 - 🛠️ 4 tools covering trash management and file rewind/recovery
 - ⚡ Built on TypeScript + MCP SDK 1.27
 - 🗑️ List and restore files from trash
@@ -42,7 +42,7 @@
 
 - Node.js 20+
 - A pCloud account
-- Either run `pcloud login` (from `pcloud-cli`) or set `MCP_PCLOUD_TOKEN`
+- A pCloud access token — via `MCP_PCLOUD_TOKEN` env var or `~/.config/pcloud/tokens.json`
 
 ### Installation
 
@@ -277,13 +277,18 @@ Open http://localhost:5173 to interact with tools live.
 The server resolves your token in this order:
 
 1. `MCP_PCLOUD_TOKEN` environment variable
-2. `~/.pcloud-cli/tokens.json` (written by `pcloud-cli login`)
+2. `~/.config/pcloud/tokens.json`
 
-To obtain a token via `pcloud-cli`:
+The token file format:
 
-```bash
-npx @kud/pcloud-cli login
+```json
+{
+  "access_token": "your-token-here",
+  "hostname": "api.pcloud.com"
+}
 ```
+
+`hostname` is optional — omit it and the server defaults to `api.pcloud.com`. Use `eapi.pcloud.com` for EU accounts.
 
 To verify your token manually:
 
@@ -320,7 +325,7 @@ A `result: 0` response confirms the token is valid.
 ## 🔒 Security Best Practices
 
 - ✅ Never hardcode your access token in source code
-- ✅ Never commit `~/.pcloud-cli/tokens.json`
+- ✅ Never commit `~/.config/pcloud/tokens.json`
 - ✅ Set `MCP_PCLOUD_TOKEN` via your shell profile, not in project files
 - ✅ Rotate your token at https://my.pcloud.com if exposed
 
