@@ -1,136 +1,23 @@
 #!/usr/bin/env node
-import { readFileSync, mkdirSync, writeFileSync } from "fs";
-import { createServer } from "http";
-import { homedir } from "os";
-import { join } from "path";
-import { exec } from "child_process";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-const TOKENS_PATH = join(homedir(), ".config", "pcloud", "tokens.json");
-const loadStoredTokens = () => {
-    try {
-        return JSON.parse(readFileSync(TOKENS_PATH, "utf8"));
-    }
-    catch {
-        return null;
-    }
-};
-const saveTokens = (tokens) => {
-    mkdirSync(join(homedir(), ".config", "pcloud"), { recursive: true });
-    writeFileSync(TOKENS_PATH, JSON.stringify(tokens, null, 2));
-};
-const openBrowser = (url) => {
-    const cmd = process.platform === "darwin"
-        ? "open"
-        : process.platform === "win32"
-            ? "start"
-            : "xdg-open";
-    exec(`${cmd} "${url}"`);
-};
-const runOAuthFlow = (clientId, clientSecret) => new Promise((resolve, reject) => {
-    const httpServer = createServer(async (req, res) => {
-        const url = new URL(req.url, "http://localhost");
-        const code = url.searchParams.get("code");
-        if (!code) {
-            res.writeHead(400);
-            res.end("Missing code parameter");
-            return;
-        }
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end("<html><body><h2>✅ Authenticated with pCloud! You can close this tab.</h2></body></html>");
-        httpServer.close();
-        try {
-            const tokenUrl = new URL("https://api.pcloud.com/oauth2_token");
-            tokenUrl.searchParams.set("client_id", clientId);
-            tokenUrl.searchParams.set("client_secret", clientSecret);
-            tokenUrl.searchParams.set("code", code);
-            const response = await fetch(tokenUrl.toString());
-            const data = (await response.json());
-            if (!data.access_token) {
-                reject(new Error(data.error ?? "Token exchange failed"));
-                return;
-            }
-            resolve({ access_token: data.access_token, hostname: data.hostname });
-        }
-        catch (e) {
-            reject(e);
-        }
-    });
-    httpServer.listen(0, "localhost", () => {
-        const port = httpServer.address().port;
-        const authUrl = new URL("https://my.pcloud.com/oauth2/authorize");
-        authUrl.searchParams.set("client_id", clientId);
-        authUrl.searchParams.set("redirect_uri", `http://localhost:${port}/callback`);
-        authUrl.searchParams.set("response_type", "code");
-        console.error("Opening browser for pCloud authentication…");
-        console.error(`If the browser does not open, visit:\n${authUrl.toString()}`);
-        openBrowser(authUrl.toString());
-    });
-});
-const resolveAuth = async () => {
-    if (process.env["MCP_PCLOUD_TOKEN"]) {
-        return {
-            token: process.env["MCP_PCLOUD_TOKEN"],
-            apiBase: "https://api.pcloud.com",
-        };
-    }
-    const stored = loadStoredTokens();
-    if (stored?.access_token) {
-        return {
-            token: stored.access_token,
-            apiBase: `https://${stored.hostname ?? "api.pcloud.com"}`,
-        };
-    }
-    const clientId = process.env["MCP_PCLOUD_CLIENT_ID"];
-    const clientSecret = process.env["MCP_PCLOUD_CLIENT_SECRET"];
-    if (clientId && clientSecret) {
-        const tokens = await runOAuthFlow(clientId, clientSecret);
-        saveTokens(tokens);
-        return {
-            token: tokens.access_token,
-            apiBase: `https://${tokens.hostname ?? "api.pcloud.com"}`,
-        };
-    }
-    console.error("No pCloud token found. Set MCP_PCLOUD_TOKEN, or MCP_PCLOUD_CLIENT_ID + MCP_PCLOUD_CLIENT_SECRET, or create ~/.config/pcloud/tokens.json.");
-    process.exit(1);
-};
-let ACCESS_TOKEN;
-let API_BASE;
-export const apiFetch = async (path, params = {}) => {
-    const url = new URL(`${API_BASE}${path}`);
-    url.searchParams.set("access_token", ACCESS_TOKEN);
-    for (const [k, v] of Object.entries(params))
-        url.searchParams.set(k, v);
-    try {
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-            console.error(`API error: ${response.status} ${path}`);
-            return null;
-        }
-        const data = (await response.json());
-        if (data.result !== 0) {
-            console.error(`pCloud error on ${path}: ${data.error ?? "unknown"}`);
-            return null;
-        }
-        return data;
-    }
-    catch (e) {
-        console.error(`Fetch failed: ${path}`, e);
-        return null;
-    }
-};
+import { resolveAuth } from "@kud/pcloud-auth";
 export const ok = (data) => ({
     content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
 });
 export const err = (msg) => ({
     content: [{ type: "text", text: `Error: ${msg}` }],
 });
+let api;
+// ─── Tool handlers ───
 export const listTrash = async () => {
-    const data = await apiFetch("/listtrash");
-    if (!data)
-        return err("failed to list trash");
-    return ok(data.items.map((item) => ({
+    const res = await api.listTrash();
+    if (res.result === 1000)
+        return err("Trash requires a session token — not supported with OAuth access tokens.");
+    if (res.result !== 0)
+        return err(res.error ?? "failed to list trash");
+    return ok((res.contents ?? []).map((item) => ({
         fileid: item.fileid,
         name: item.name,
         path: item.path,
@@ -141,18 +28,18 @@ export const listTrash = async () => {
 export const restoreFromTrash = async ({ fileid, confirm, }) => {
     if (!confirm)
         return err("set confirm=true to restore a file from trash");
-    const data = await apiFetch("/trash_restore", {
-        fileid: String(fileid),
-    });
-    return data
-        ? ok({ restored: true, fileid })
-        : err("failed to restore from trash");
+    const res = await api.restoreFromTrash(fileid);
+    if (res.result === 1000)
+        return err("Trash requires a session token — not supported with OAuth access tokens.");
+    if (res.result !== 0)
+        return err(res.error ?? "failed to restore from trash");
+    return ok({ restored: true, fileid });
 };
 export const listRewindEvents = async ({ path }) => {
-    const data = await apiFetch("/listrewindevents", { path });
-    if (!data)
-        return err("failed to list rewind events");
-    return ok(data.events.map((event) => ({
+    const res = await api.listRewindFiles(path);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to list rewind events");
+    return ok((res.contents ?? []).map((event) => ({
         fileid: event.fileid,
         name: event.name,
         time: new Date(event.time * 1000).toISOString(),
@@ -161,212 +48,174 @@ export const listRewindEvents = async ({ path }) => {
 export const restoreFromRewind = async ({ fileid, topath, confirm, }) => {
     if (!confirm)
         return err("set confirm=true to restore a file from rewind history");
-    const data = await apiFetch("/file_restore", {
-        fileid: String(fileid),
-        topath,
-    });
-    return data
-        ? ok({ restored: true, fileid, topath })
-        : err("failed to restore from rewind");
+    const res = await api.restoreFromRewind(fileid, topath);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to restore from rewind");
+    return ok({ restored: true, fileid, topath });
 };
 export const getUserInfo = async () => {
-    const data = await apiFetch("/userinfo");
-    if (!data)
-        return err("failed to get user info");
+    const res = await api.userInfo();
+    if (res.result !== 0)
+        return err(res.error ?? "failed to get user info");
     return ok({
-        email: data.email,
-        quota: data.quota,
-        usedquota: data.usedquota,
-        plan: data.plan,
+        email: res.email,
+        quota: res.quota,
+        usedquota: res.usedquota,
+        plan: res.plan,
     });
 };
-// ─── Files ───
 export const listFolder = async ({ path, folderid, recursive, }) => {
-    const params = {};
-    if (path !== undefined)
-        params.path = path;
-    if (folderid !== undefined)
-        params.folderid = String(folderid);
-    if (recursive !== undefined)
-        params.recursive = recursive ? "1" : "0";
-    const data = await apiFetch("/listfolder", params);
-    if (!data)
-        return err("failed to list folder");
-    return ok(data.metadata);
+    const res = await api.request("listfolder", {
+        ...(path !== undefined && { path }),
+        ...(folderid !== undefined && { folderid }),
+        ...(recursive !== undefined && { recursive: recursive ? 1 : 0 }),
+    });
+    if (res.result !== 0)
+        return err(res.error ?? "failed to list folder");
+    return ok(res.metadata);
 };
 export const getFileStat = async ({ path, fileid, }) => {
-    const params = {};
-    if (path !== undefined)
-        params.path = path;
-    if (fileid !== undefined)
-        params.fileid = String(fileid);
-    const data = await apiFetch("/stat", params);
-    if (!data)
-        return err("failed to get file stat");
-    return ok(data.metadata);
+    const res = await api.request("stat", {
+        ...(path !== undefined && { path }),
+        ...(fileid !== undefined && { fileid }),
+    });
+    if (res.result !== 0)
+        return err(res.error ?? "failed to get file stat");
+    return ok(res.metadata);
 };
 export const createFolder = async ({ path }) => {
-    const data = await apiFetch("/createfolderifnotexists", { path });
-    if (!data)
-        return err("failed to create folder");
-    return ok(data.metadata);
+    const res = await api.createFolder(path);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to create folder");
+    return ok(res.metadata);
 };
 export const copyFile = async ({ fileid, topath, }) => {
-    const data = await apiFetch("/copyfile", { fileid: String(fileid), topath });
-    if (!data)
-        return err("failed to copy file");
-    return ok(data.metadata);
+    const res = await api.copyFile(fileid, topath);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to copy file");
+    return ok(res.metadata);
 };
 export const moveFile = async ({ fileid, topath, }) => {
-    const data = await apiFetch("/renamefile", { fileid: String(fileid), topath });
-    if (!data)
-        return err("failed to move file");
-    return ok(data.metadata);
+    const res = await api.moveFile(fileid, topath);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to move file");
+    return ok(res.metadata);
 };
 export const renameFile = async ({ fileid, toname, }) => {
-    const data = await apiFetch("/renamefile", { fileid: String(fileid), toname });
-    if (!data)
-        return err("failed to rename file");
-    return ok(data.metadata);
+    const res = await api.renameFile(fileid, toname);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to rename file");
+    return ok(res.metadata);
 };
 export const deleteFile = async ({ fileid, confirm, }) => {
     if (!confirm)
         return err("set confirm=true to delete a file");
-    const data = await apiFetch("/deletefile", { fileid: String(fileid) });
-    if (!data)
-        return err("failed to delete file");
+    const res = await api.deleteFile(fileid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to delete file");
     return ok({ deleted: true, fileid });
 };
 export const deleteFolder = async ({ folderid, confirm, }) => {
     if (!confirm)
         return err("set confirm=true to delete a folder");
-    const data = await apiFetch("/deletefolderrecursive", {
-        folderid: String(folderid),
-    });
-    if (!data)
-        return err("failed to delete folder");
+    const res = await api.deleteFolder(folderid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to delete folder");
     return ok({ deleted: true, folderid });
 };
 export const getFileLink = async ({ fileid, forcedownload, }) => {
-    const params = { fileid: String(fileid) };
-    if (forcedownload !== undefined)
-        params.forcedownload = forcedownload ? "1" : "0";
-    const data = await apiFetch("/getfilelink", params);
-    if (!data)
-        return err("failed to get file link");
-    return ok({ url: `https://${data.hosts[0]}${data.path}` });
+    const res = await api.request("getfilelink", {
+        fileid,
+        ...(forcedownload !== undefined && {
+            forcedownload: forcedownload ? 1 : 0,
+        }),
+    });
+    if (res.result !== 0)
+        return err(res.error ?? "failed to get file link");
+    return ok({ url: `https://${res.hosts[0]}${res.path}` });
 };
 export const getChecksum = async ({ fileid }) => {
-    const data = await apiFetch("/checksumfile", { fileid: String(fileid) });
-    if (!data)
-        return err("failed to get checksum");
-    return ok({ sha256: data.sha256, sha1: data.sha1, md5: data.md5 });
+    const res = await api.checksumFile(fileid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to get checksum");
+    return ok({ sha256: res.sha256, sha1: res.sha1, md5: res.md5 });
 };
-// ─── Sharing ───
 export const listShares = async () => {
-    const data = await apiFetch("/listshares");
-    if (!data)
-        return err("failed to list shares");
-    return ok(data.shares);
+    const res = await api.listShares();
+    if (res.result !== 0)
+        return err(res.error ?? "failed to list shares");
+    return ok(res.shares);
 };
 export const shareFolder = async ({ folderid, mail, permissions, }) => {
-    const data = await apiFetch("/sharefolder", {
-        folderid: String(folderid),
-        mail,
-        permissions: String(permissions),
-    });
-    if (!data)
-        return err("failed to share folder");
+    const res = await api.shareFolder(folderid, mail, permissions);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to share folder");
     return ok({ shared: true, folderid, mail, permissions });
 };
 export const acceptShare = async ({ sharerequestid, }) => {
-    const data = await apiFetch("/acceptshare", {
-        sharerequestid: String(sharerequestid),
-    });
-    if (!data)
-        return err("failed to accept share");
+    const res = await api.acceptShare(sharerequestid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to accept share");
     return ok({ accepted: true, sharerequestid });
 };
 export const declineShare = async ({ sharerequestid, }) => {
-    const data = await apiFetch("/declineshare", {
-        sharerequestid: String(sharerequestid),
-    });
-    if (!data)
-        return err("failed to decline share");
+    const res = await api.declineShare(sharerequestid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to decline share");
     return ok({ declined: true, sharerequestid });
 };
 export const removeShare = async ({ sharerequestid, confirm, }) => {
     if (!confirm)
         return err("set confirm=true to remove a share");
-    const data = await apiFetch("/removeshare", {
-        sharerequestid: String(sharerequestid),
-    });
-    if (!data)
-        return err("failed to remove share");
+    const res = await api.removeShare(sharerequestid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to remove share");
     return ok({ removed: true, sharerequestid });
 };
-// ─── Public links ───
 export const createFilePublink = async ({ fileid, expire, maxdownloads, }) => {
-    const params = { fileid: String(fileid) };
-    if (expire !== undefined)
-        params.expire = expire;
-    if (maxdownloads !== undefined)
-        params.maxdownloads = String(maxdownloads);
-    const data = await apiFetch("/getfilepublink", params);
-    if (!data)
-        return err("failed to create file public link");
-    return ok({ link: data.link, code: data.code });
+    const res = await api.getFilePublink(fileid, expire, maxdownloads);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to create file public link");
+    return ok({ link: res.link, code: res.code });
 };
 export const createFolderPublink = async ({ folderid, expire, }) => {
-    const params = { folderid: String(folderid) };
-    if (expire !== undefined)
-        params.expire = expire;
-    const data = await apiFetch("/getfolderpublink", params);
-    if (!data)
-        return err("failed to create folder public link");
-    return ok({ link: data.link, code: data.code });
+    const res = await api.getFolderPublink(folderid, expire);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to create folder public link");
+    return ok({ link: res.link, code: res.code });
 };
 export const listPublinks = async () => {
-    const data = await apiFetch("/listpublinks");
-    if (!data)
-        return err("failed to list public links");
-    return ok(data.publinks);
+    const res = await api.listPublinks();
+    if (res.result !== 0)
+        return err(res.error ?? "failed to list public links");
+    return ok(res.publinks);
 };
 export const deletePublink = async ({ code, confirm, }) => {
     if (!confirm)
         return err("set confirm=true to delete a public link");
-    const data = await apiFetch("/deletepublink", { code });
-    if (!data)
-        return err("failed to delete public link");
+    const res = await api.deletePublink(code);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to delete public link");
     return ok({ deleted: true, code });
 };
-// ─── Zip ───
 export const getZipLink = async ({ fileids, folderids, filename, }) => {
-    const params = {
-        fileids: fileids.join(","),
-    };
-    if (folderids !== undefined)
-        params.folderids = folderids.join(",");
-    if (filename !== undefined)
-        params.filename = filename;
-    const data = await apiFetch("/getziplink", params);
-    if (!data)
-        return err("failed to get zip link");
-    return ok({ url: `https://${data.hosts[0]}${data.path}` });
+    const res = await api.getZipLink(fileids, folderids, filename);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to get zip link");
+    return ok({ url: `https://${res.hosts[0]}${res.path}` });
 };
-// ─── Revisions ───
 export const listRevisions = async ({ fileid }) => {
-    const data = await apiFetch("/listrevisions", { fileid: String(fileid) });
-    if (!data)
-        return err("failed to list revisions");
-    return ok(data.revisions);
+    const res = await api.listRevisions(fileid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to list revisions");
+    return ok(res.revisions);
 };
 export const revertRevision = async ({ fileid, revisionid, confirm, }) => {
     if (!confirm)
         return err("set confirm=true to revert a revision");
-    const data = await apiFetch("/revertrevision", { fileid: String(fileid), revisionid: String(revisionid) });
-    if (!data)
-        return err("failed to revert revision");
+    const res = await api.revertRevision(fileid, revisionid);
+    if (res.result !== 0)
+        return err(res.error ?? "failed to revert revision");
     return ok({ reverted: true, fileid, revisionid });
 };
 // ─── Server ───
@@ -590,9 +439,11 @@ server.registerTool("revert_revision", {
     },
 }, revertRevision);
 const main = async () => {
-    const auth = await resolveAuth();
-    ACCESS_TOKEN = auth.token;
-    API_BASE = auth.apiBase;
+    api = await resolveAuth({
+        tokenEnvVar: "MCP_PCLOUD_TOKEN",
+        clientIdEnvVar: "MCP_PCLOUD_CLIENT_ID",
+        clientSecretEnvVar: "MCP_PCLOUD_CLIENT_SECRET",
+    });
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error("mcp-pcloud running");
