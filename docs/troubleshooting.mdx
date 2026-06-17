@@ -1,0 +1,42 @@
+---
+title: Troubleshooting
+description: Common issues and checks for mcp-pcloud.
+---
+
+> ⚠️ **Draft — not working yet.** The authentication flow is under active
+> development, so some failures are expected until it lands.
+
+## Server not showing
+
+- Confirm `node --version` is ≥ 20.
+- Run `claude mcp get mcp-pcloud` to check registration.
+- Confirm `MCP_PCLOUD_TOKEN` is set, or that a token file exists at
+  `~/.config/pcloud/tokens.json`.
+
+## Authentication errors
+
+Test your token directly against the API:
+
+```bash
+curl "https://api.pcloud.com/userinfo?access_token=YOUR_TOKEN"
+```
+
+A `result: 0` response confirms the token is valid. For EU accounts, use
+`eapi.pcloud.com`.
+
+> **Note:** Trash operations require a session token and are not supported with
+> OAuth access tokens — `list_trash` and `restore_from_trash` return an error in
+> that case.
+
+## Check logs
+
+- macOS: `~/Library/Logs/Claude/mcp-server-mcp-pcloud.log`
+- Windows: `%APPDATA%\Claude\logs\mcp-server-mcp-pcloud.log`
+- CLI: `claude mcp get mcp-pcloud`
+
+## Security
+
+- Never hardcode your access token in source code.
+- Never commit `~/.config/pcloud/tokens.json`.
+- Set `MCP_PCLOUD_TOKEN` via your shell profile, not project files.
+- Rotate your token at https://my.pcloud.com if exposed.

@@ -1,0 +1,98 @@
+---
+title: Installation
+description: Install and authenticate mcp-pcloud across MCP clients.
+---
+
+> ⚠️ **Draft — not working yet.** The authentication flow is under active
+> development.
+
+## Prerequisites
+
+- Node.js 20+
+- A pCloud account
+- A pCloud access token, exposed via `MCP_PCLOUD_TOKEN` or
+  `~/.config/pcloud/tokens.json`
+
+## Claude Code CLI
+
+```bash
+claude mcp add mcp-pcloud -- npx -y @kud/mcp-pcloud
+```
+
+## Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "mcp-pcloud": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-pcloud"],
+      "env": {
+        "MCP_PCLOUD_TOKEN": "your-token-here"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop — the pCloud tools appear automatically.
+
+## Cursor
+
+Add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "mcp-pcloud": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-pcloud"]
+    }
+  }
+}
+```
+
+## VSCode
+
+Add to `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "mcp-pcloud": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-pcloud"]
+    }
+  }
+}
+```
+
+## Authentication
+
+The server resolves your token in this order:
+
+1. The `MCP_PCLOUD_TOKEN` environment variable
+2. `~/.config/pcloud/tokens.json`
+
+The token file format:
+
+```json
+{
+  "access_token": "your-token-here",
+  "hostname": "api.pcloud.com"
+}
+```
+
+`hostname` is optional — omit it to default to `api.pcloud.com`. Use
+`eapi.pcloud.com` for EU accounts.
+
+Verify a token manually:
+
+```bash
+curl "https://api.pcloud.com/userinfo?access_token=YOUR_TOKEN"
+```
+
+A `result: 0` response confirms the token is valid.

@@ -14,26 +14,13 @@
 ![npm](https://img.shields.io/badge/npm-%40kud%2Fmcp--pcloud-red?logo=npm)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
-**Manage pCloud trash and file rewind history directly from your AI assistant.**
+**An MCP server for pCloud — manage trash, files, sharing, public links, and file rewind recovery from your AI assistant.**
 
 <a href="https://kud.io/projects/mcp-pcloud">Website</a> · <a href="https://kud.io/projects/mcp-pcloud/docs">Documentation</a>
 
 </div>
 
----
-
-An MCP server for pCloud — manage trash and file rewind recovery directly from your AI assistant.
-
-## ✨ Features
-
-- 🔐 Bearer token — reads from `~/.config/pcloud/tokens.json` or env var
-- 🛠️ 4 tools covering trash management and file rewind/recovery
-- ⚡ Built on TypeScript + MCP SDK 1.27
-- 🗑️ List and restore files from trash
-- ⏪ Browse version history and recover older file versions
-- 🌍 Respects pCloud's dynamic API hostname (EU/US routing)
-
-## 🚀 Install
+## Install
 
 ```json
 {
@@ -46,18 +33,12 @@ An MCP server for pCloud — manage trash and file rewind recovery directly from
 }
 ```
 
-## 📖 Documentation
-
-Full tool reference, usage, and configuration live on the docs site:
-
-**→ [kud.io/projects/mcp-pcloud/docs](https://kud.io/projects/mcp-pcloud/docs)**
-
-## 🔧 Development
+## Development
 
 1. Run `npm run typecheck` — zero errors required
 2. Run `npm run build` — must succeed
 3. Follow the single-file pattern in `src/index.ts` — exported handlers, no inline comments
 
-## License
+---
 
-[MIT](LICENSE)
+📚 **Full documentation → https://kud.io/projects/mcp-pcloud/docs**
