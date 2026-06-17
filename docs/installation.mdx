@@ -1,25 +1,25 @@
 ---
-title: Installation
+title: 📦 Installation
 description: Install and authenticate mcp-pcloud across MCP clients.
 ---
 
 > ⚠️ **Draft — not working yet.** The authentication flow is under active
 > development.
 
-## Prerequisites
+## ✅ Prerequisites
 
 - Node.js 20+
 - A pCloud account
 - A pCloud access token, exposed via `MCP_PCLOUD_TOKEN` or
   `~/.config/pcloud/tokens.json`
 
-## Claude Code CLI
+## 🚀 Claude Code CLI
 
 ```bash
 claude mcp add mcp-pcloud -- npx -y @kud/mcp-pcloud
 ```
 
-## Claude Desktop
+## 🖥️ Claude Desktop
 
 Add to `claude_desktop_config.json`:
 
@@ -39,7 +39,7 @@ Add to `claude_desktop_config.json`:
 
 Restart Claude Desktop — the pCloud tools appear automatically.
 
-## Cursor
+## ⚡ Cursor
 
 Add to `.cursor/mcp.json`:
 
@@ -54,7 +54,7 @@ Add to `.cursor/mcp.json`:
 }
 ```
 
-## VSCode
+## 🧩 VSCode
 
 Add to `.vscode/mcp.json`:
 
@@ -70,7 +70,7 @@ Add to `.vscode/mcp.json`:
 }
 ```
 
-## Authentication
+## 🔐 Authentication
 
 The server resolves your token in this order:
 

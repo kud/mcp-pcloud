@@ -1,5 +1,5 @@
 ---
-title: mcp-pcloud
+title: ☁️ mcp-pcloud
 description: MCP server for pCloud — manage trash, files, sharing, public links, and file rewind recovery from your AI assistant.
 ---
 
@@ -12,7 +12,7 @@ server for [pCloud](https://www.pcloud.com/). It exposes the pCloud API to your
 AI assistant — browse and manage files, share folders, mint public links, and
 recover deleted or earlier file versions through trash and rewind history.
 
-## Features
+## ✨ Features
 
 - 🔐 **Token auth** — reads a bearer token from `MCP_PCLOUD_TOKEN` or
   `~/.config/pcloud/tokens.json`.
@@ -24,7 +24,7 @@ recover deleted or earlier file versions through trash and rewind history.
   download links.
 - 🌍 **Dynamic API routing** — respects pCloud's EU/US hostname split.
 
-## Install
+## 📦 Install
 
 Add the server to your MCP client config:
 
@@ -45,31 +45,31 @@ Add the server to your MCP client config:
 See [Installation](/projects/mcp-pcloud/docs/installation) for per-client setup
 and authentication details.
 
-## Tools
+## 🧰 Tools
 
 The server registers **27 tools** across seven groups.
 
-### 🗑️ Trash
+### Trash
 
 | Tool                 | Description                                      |
 | -------------------- | ------------------------------------------------ |
 | `list_trash`         | List all files currently in the pCloud trash     |
 | `restore_from_trash` | Restore a file from trash by file ID (`confirm`) |
 
-### ⏪ Rewind
+### Rewind
 
 | Tool                  | Description                                                  |
 | --------------------- | ------------------------------------------------------------ |
 | `list_rewind_events`  | List version history (rewind events) for a file path         |
 | `restore_from_rewind` | Restore a file from rewind history to a new path (`confirm`) |
 
-### 👤 User
+### User
 
 | Tool            | Description                              |
 | --------------- | ---------------------------------------- |
 | `get_user_info` | Get account info: email, quota, and plan |
 
-### 📁 Files
+### Files
 
 | Tool            | Description                                    |
 | --------------- | ---------------------------------------------- |
@@ -84,7 +84,7 @@ The server registers **27 tools** across seven groups.
 | `get_file_link` | Get a download URL for a file                  |
 | `get_checksum`  | Get SHA256, SHA1, and MD5 checksums for a file |
 
-### 🤝 Sharing
+### Sharing
 
 | Tool            | Description                             |
 | --------------- | --------------------------------------- |
@@ -94,7 +94,7 @@ The server registers **27 tools** across seven groups.
 | `decline_share` | Decline an incoming share request       |
 | `remove_share`  | Remove an active share (`confirm`)      |
 
-### 🔗 Public Links
+### Public Links
 
 | Tool                    | Description                              |
 | ----------------------- | ---------------------------------------- |
@@ -103,7 +103,7 @@ The server registers **27 tools** across seven groups.
 | `list_publinks`         | List all active public links             |
 | `delete_publink`        | Delete a public link (`confirm`)         |
 
-### 🗜️ Zip & 🔄 Revisions
+### Zip & Revisions
 
 | Tool              | Description                                          |
 | ----------------- | ---------------------------------------------------- |
@@ -114,7 +114,7 @@ The server registers **27 tools** across seven groups.
 Tools marked `(confirm)` require `confirm=true` to execute their destructive
 action.
 
-## More
+## 📖 More
 
 - [Installation](/projects/mcp-pcloud/docs/installation) — per-client setup and authentication.
 - [Troubleshooting](/projects/mcp-pcloud/docs/troubleshooting) — common issues and checks.
