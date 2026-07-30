@@ -14,6 +14,28 @@ export const err = (msg: string) => ({
 
 let api: PCloudAPI
 
+// A throw out of a tool handler takes down the whole MCP call; pCloud answers a
+// 500 with an HTML page, which the SDK cannot parse and rightly rejects on.
+// Reshaping that rejection into a pCloud-shaped error means every handler's
+// existing `res.result !== 0` branch reports it, with no per-tool try/catch.
+export const resilient = (client: PCloudAPI): PCloudAPI =>
+  new Proxy(client, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver)
+      if (typeof value !== "function") return value
+      return async (...args: unknown[]) => {
+        try {
+          return await value.apply(target, args)
+        } catch (error) {
+          return {
+            result: -1,
+            error: error instanceof Error ? error.message : String(error),
+          }
+        }
+      }
+    },
+  })
+
 // ─── Tool handlers ───
 
 export const listTrash = async () => {
@@ -51,33 +73,24 @@ export const restoreFromTrash = async ({
   return ok({ restored: true, fileid })
 }
 
-export const listRewindEvents = async ({ path }: { path: string }) => {
-  const res = await api.listRewindFiles(path)
-  if (res.result !== 0) return err(res.error ?? "failed to list rewind events")
-  return ok(
-    (res.contents ?? []).map((event: any) => ({
-      fileid: event.fileid,
-      name: event.name,
-      time: new Date(event.time * 1000).toISOString(),
-    })),
-  )
-}
+// Rewind is a pCloud web-app feature with no public API behind it. The
+// endpoints these tools were built on — listrewindevents and file_restore —
+// return 404, as do listrewind, rewind, rewindlist and listrewindfiles. Kept as
+// signposts so a caller is told where to go instead of getting a parse failure.
+const REWIND_UNAVAILABLE =
+  "Rewind is not available through the pCloud API — it exists only in the " +
+  "pCloud web app at pcloud.com. Use list_changes to see what changed and " +
+  "when, list_revisions for previous versions of a file, or list_trash for " +
+  "recoverable deletions."
 
-export const restoreFromRewind = async ({
-  fileid,
-  topath,
-  confirm,
-}: {
+export const listRewindEvents = async (_: { path: string }) =>
+  err(REWIND_UNAVAILABLE)
+
+export const restoreFromRewind = async (_: {
   fileid: number
   topath: string
   confirm: boolean
-}) => {
-  if (!confirm)
-    return err("set confirm=true to restore a file from rewind history")
-  const res = await api.restoreFromRewind(fileid, topath)
-  if (res.result !== 0) return err(res.error ?? "failed to restore from rewind")
-  return ok({ restored: true, fileid, topath })
-}
+}) => err(REWIND_UNAVAILABLE)
 
 export const getUserInfo = async () => {
   const res = await api.userInfo()
@@ -721,11 +734,13 @@ server.registerTool(
 )
 
 const main = async () => {
-  api = await resolveAuth({
-    tokenEnvVar: "MCP_PCLOUD_TOKEN",
-    clientIdEnvVar: "MCP_PCLOUD_CLIENT_ID",
-    clientSecretEnvVar: "MCP_PCLOUD_CLIENT_SECRET",
-  })
+  api = resilient(
+    await resolveAuth({
+      tokenEnvVar: "MCP_PCLOUD_TOKEN",
+      clientIdEnvVar: "MCP_PCLOUD_CLIENT_ID",
+      clientSecretEnvVar: "MCP_PCLOUD_CLIENT_SECRET",
+    }),
+  )
 
   const transport = new StdioServerTransport()
   await server.connect(transport)

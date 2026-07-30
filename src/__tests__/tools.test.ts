@@ -46,10 +46,14 @@ beforeEach(() => {
   mockFetch.mockReset()
 })
 
+// The SDK reads response.text() and parses it itself, so that it can redact
+// secrets from a non-JSON error body before the text reaches an exception.
+// Mocks that only provide json() satisfy the type but not the caller.
 const res = (data: unknown) =>
   Promise.resolve({
     ok: true,
     status: 200,
+    text: () => Promise.resolve(JSON.stringify(data)),
     json: () => Promise.resolve(data),
   } as Response)
 
@@ -57,6 +61,7 @@ const failRes = () =>
   Promise.resolve({
     ok: false,
     status: 500,
+    text: () => Promise.resolve("<html>500 Internal Server Error</html>"),
     json: () => Promise.resolve({}),
   } as Response)
 
@@ -78,7 +83,7 @@ describe("listTrash", () => {
     mockFetch.mockReturnValue(
       res({
         result: 0,
-        items: [
+        contents: [
           {
             fileid: 42,
             name: "old.txt",
@@ -94,7 +99,7 @@ describe("listTrash", () => {
     expect(parsed[0].fileid).toBe(42)
     expect(parsed[0].name).toBe("old.txt")
     expect(parsed[0].sizeBytes).toBe(1024)
-    expect(mockFetch.mock.calls[0][0]).toContain("/listtrash")
+    expect(mockFetch.mock.calls[0][0]).toContain("/trash_list")
   })
 
   it("returns error when fetch fails", async () => {
@@ -135,60 +140,33 @@ describe("restoreFromTrash", () => {
 })
 
 describe("listRewindEvents", () => {
-  it("returns formatted rewind events on success", async () => {
-    mockFetch.mockReturnValue(
-      res({
-        result: 0,
-        events: [{ fileid: 99, name: "doc.txt", time: 1700000000 }],
-      }),
-    )
-    const result = await listRewindEvents({ path: "/doc.txt" })
-    const parsed = JSON.parse(text(result))
-    expect(parsed[0].fileid).toBe(99)
-    expect(parsed[0].name).toBe("doc.txt")
-    expect(mockFetch.mock.calls[0][0]).toContain("/listrewindevents")
-    expect(mockFetch.mock.calls[0][0]).toContain("path=")
-  })
-
-  it("returns error when fetch fails", async () => {
-    mockFetch.mockReturnValue(failRes())
+  it("reports that Rewind has no public API, without calling one", async () => {
     const result = await listRewindEvents({ path: "/doc.txt" })
     expect(text(result)).toContain("Error:")
+    expect(text(result)).toContain("only in the pCloud web app")
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it("points at the tools that do work", async () => {
+    const result = await listRewindEvents({ path: "/doc.txt" })
+    expect(text(result)).toContain("list_changes")
+    expect(text(result)).toContain("list_revisions")
+    expect(text(result)).toContain("list_trash")
   })
 })
 
 describe("restoreFromRewind", () => {
-  it("requires confirm=true", async () => {
+  // confirm=true is deliberately the case under test: the tool must refuse on
+  // the grounds that the endpoint does not exist, not merely for want of a flag.
+  it("reports that Rewind has no public API, without calling one", async () => {
     const result = await restoreFromRewind({
       fileid: 99,
       topath: "/recovered.txt",
-      confirm: false,
+      confirm: true,
     })
     expect(text(result)).toContain("Error:")
+    expect(text(result)).toContain("only in the pCloud web app")
     expect(mockFetch).not.toHaveBeenCalled()
-  })
-
-  it("restores file when confirmed", async () => {
-    mockFetch.mockReturnValue(res({ result: 0 }))
-    const result = await restoreFromRewind({
-      fileid: 99,
-      topath: "/recovered.txt",
-      confirm: true,
-    })
-    const parsed = JSON.parse(text(result))
-    expect(parsed.restored).toBe(true)
-    expect(parsed.topath).toBe("/recovered.txt")
-    expect(mockFetch.mock.calls[0][0]).toContain("/file_restore")
-  })
-
-  it("returns error when fetch fails", async () => {
-    mockFetch.mockReturnValue(failRes())
-    const result = await restoreFromRewind({
-      fileid: 99,
-      topath: "/recovered.txt",
-      confirm: true,
-    })
-    expect(text(result)).toContain("Error:")
   })
 })
 
