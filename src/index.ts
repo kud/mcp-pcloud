@@ -2,8 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
-import { PCloudAPI } from "@kud/pcloud-sdk"
-import { resolveAuth } from "@kud/pcloud-auth"
+import { PCloudAPI, resolveAuth } from "@kud/pcloud"
 
 export const ok = (data: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],

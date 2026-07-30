@@ -50,8 +50,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@kud/pcloud-auth": "0.1.0",
-    "@kud/pcloud-sdk": "0.1.0",
+    "@kud/pcloud": "0.1.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "zod": "^4.3.6"
   },
